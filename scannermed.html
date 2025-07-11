@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis Técnico de Infraestructura TI - ScannerMed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Blue, Slate, and status colors (Red, Amber, Green) -->
+    <!-- Application Structure Plan: A single-page dashboard with a tab-based navigation structure. The main tabs are "Resumen General", "Detalle por Sede", and "Glosario". This structure allows users to start with a high-level overview (KPIs and charts), drill down into the specifics of each location, and access reference material without leaving the page. This is more intuitive for a client than a long scrolling document, as it segments the information into logical, digestible chunks. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Key findings (e.g., Windows 7, IP pública) -> Goal: Alert/Inform -> Viz: KPI Cards with icons (HTML/CSS) -> Interaction: None -> Justification: Provides an immediate, high-impact summary of the most critical issues.
+        - Report Info: OS Distribution & Connectivity -> Goal: Compare/Highlight Risk -> Viz: Donut & Bar Charts (Chart.js) -> Interaction: Hover for details -> Justification: Visualizes the proportion of risks (obsolete OS, unstable Wi-Fi) across the entire infrastructure.
+        - Report Info: Equipment details per site -> Goal: Organize/Inform -> Viz: Accordion-style collapsible cards (HTML/JS) -> Interaction: Click to expand/collapse -> Justification: Presents detailed information for each PC in a clean, organized manner, preventing information overload. Each card contains specs, risks, and recommendations.
+        - Report Info: Site-specific risks & recommendations -> Goal: Summarize -> Viz: Bulleted lists with icons (HTML/CSS) -> Interaction: None -> Justification: Clearly separates the analysis for each location, mirroring the report's structure in an interactive way.
+        - Report Info: Glossary -> Goal: Reference -> Viz: Two-column definition list (HTML) -> Interaction: None -> Justification: Standard and effective way to present reference terms.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9; /* slate-100 */
+        }
+        .tab-button.active {
+            border-bottom-color: #2563eb; /* blue-600 */
+            color: #2563eb;
+            font-weight: 600;
+        }
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            height: 320px;
+            margin: auto;
+        }
+        .accordion-header {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+    </style>
+</head>
+<body class="text-slate-700">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+
+        <header class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Análisis de Infraestructura TI</h1>
+                    <p class="text-lg text-slate-600">Cliente: ScannerMed</p>
+                </div>
+                <div class="text-right">
+                    <p class="font-semibold text-slate-800">Victor Gonzalez Palma</p>
+                    <p class="text-sm text-slate-500">10 de Julio, 2025</p>
+                </div>
+            </div>
+        </header>
+
+        <nav class="border-b border-slate-300 mb-8">
+            <div class="flex space-x-4 sm:space-x-8">
+                <button class="tab-button active py-3 px-1 text-sm sm:text-base" data-tab="resumen">Resumen General</button>
+                <button class="tab-button py-3 px-1 text-sm sm:text-base" data-tab="sedes">Detalle por Sede</button>
+                <button class="tab-button py-3 px-1 text-sm sm:text-base" data-tab="glosario">Glosario Técnico</button>
+            </div>
+        </nav>
+
+        <main>
+            <!-- Resumen General Tab -->
+            <div id="resumen" class="tab-content active">
+                <section>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-4">Principales Hallazgos y Métricas Clave</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white p-5 rounded-lg shadow-md flex items-center space-x-4">
+                            <div class="text-3xl">🏢</div>
+                            <div>
+                                <p class="text-3xl font-bold text-slate-800">3</p>
+                                <p class="text-slate-500">Sedes Analizadas</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-lg shadow-md flex items-center space-x-4">
+                            <div class="text-3xl">🖥️</div>
+                            <div>
+                                <p class="text-3xl font-bold text-slate-800">10</p>
+                                <p class="text-slate-500">Equipos Evaluados</p>
+                            </div>
+                        </div>
+                        <div class="bg-red-100 border-l-4 border-red-500 p-5 rounded-lg shadow-md flex items-center space-x-4">
+                            <div class="text-3xl">🔴</div>
+                            <div>
+                                <p class="text-xl font-bold text-red-800">3</p>
+                                <p class="text-red-600">Riesgos Críticos</p>
+                            </div>
+                        </div>
+                        <div class="bg-amber-100 border-l-4 border-amber-500 p-5 rounded-lg shadow-md flex items-center space-x-4">
+                            <div class="text-3xl">🟡</div>
+                            <div>
+                                <p class="text-xl font-bold text-amber-800">6</p>
+                                <p class="text-amber-600">Riesgos Altos</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold mb-4 text-center text-slate-800">Distribución de Sistemas Operativos</h3>
+                        <div class="chart-container">
+                            <canvas id="osChart"></canvas>
+                        </div>
+                        <p class="text-center text-sm text-slate-500 mt-4">La presencia de Windows 7 y versiones Insider representa un riesgo de seguridad y estabilidad.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold mb-4 text-center text-slate-800">Tipos de Conexión de Red</h3>
+                        <div class="chart-container">
+                            <canvas id="connectivityChart"></canvas>
+                        </div>
+                         <p class="text-center text-sm text-slate-500 mt-4">Un 30% de los equipos administrativos dependen de Wi-Fi por USB, afectando la estabilidad.</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Detalle por Sede Tab -->
+            <div id="sedes" class="tab-content">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6">Análisis Detallado por Sede</h2>
+                <div class="space-y-8" id="sedes-container">
+                    <!-- Content will be generated by JS -->
+                </div>
+            </div>
+
+            <!-- Glosario Tab -->
+            <div id="glosario" class="tab-content">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6">Glosario Técnico</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div id="glosario-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
+                        <!-- Glossary terms will be injected here by JS -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const reportData = {
+            sedes: [
+                {
+                    name: "Edificio Corporativo - Los Andes",
+                    network: "192.168.1.0/24",
+                    summary: "Sede con funciones administrativas y de gestión. La red opera sobre una conexión residencial. Los principales riesgos son la conectividad inestable por Wi-Fi y la falta de respaldos formales.",
+                    equipment: [
+                        {
+                            id: "DESKTOP-J64M11A",
+                            user: "PC Milka",
+                            func: "Estación estándar",
+                            cpu: "Intel Core i3-3220T",
+                            ram: 8,
+                            disk: "223 GB SSD",
+                            os: "Windows 10 Pro",
+                            antivirus: "Windows Defender",
+                            risks: ["Hardware envejecido (CPU de 3ª gen)."],
+                            recommendations: ["Planificar renovación para 2025-2026."]
+                        },
+                        {
+                            id: "DESKTOP-3AНАНРТ",
+                            user: "PC Carol",
+                            func: "Estación estándar",
+                            cpu: "Intel Core i5-9400",
+                            ram: 8,
+                            disk: "223 GB SSD",
+                            os: "Windows 10 Pro",
+                            antivirus: "Avira Free Security",
+                            risks: ["Antivirus gratuito sin gestión centralizada.", "Conexión por Wi-Fi USB inestable."],
+                            recommendations: ["Estandarizar antivirus empresarial.", "Priorizar conexión por cable Ethernet."]
+                        },
+                        {
+                            id: "DESKTOP-M8RV4DC",
+                            user: "PC Norma",
+                            func: "Estación estándar",
+                            cpu: "Intel Core i5-9400",
+                            ram: 8,
+                            disk: "223 GB SSD",
+                            os: "Windows 10 Pro",
+                            antivirus: "Avira Free Security",
+                            risks: ["Conexión por Wi-Fi USB inestable.", "Antivirus no estandarizado."],
+                            recommendations: ["Priorizar conexión por cable (LAN).", "Estandarizar antivirus."]
+                        },
+                        {
+                            id: "DESKTOP-MFHUKC5",
+                            user: "PC Silvana",
+                            func: "Estación estándar",
+                            cpu: "Intel Core i3-4130F",
+                            ram: 4,
+                            disk: "223 GB SSD",
+                            os: "Windows 10 Pro",
+                            antivirus: "Avira Free Security",
+                            risks: ["Solo 4 GB de RAM, causa lentitud.", "Conexión por Wi-Fi USB inestable."],
+                            recommendations: ["Ampliar a 8 GB RAM.", "Migrar a conexión por cable."]
+                        }
+                    ],
+                    siteRisks: [
+                        "Memoria RAM insuficiente en un equipo (4GB).",
+                        "Conectividad Wi-Fi inestable mediante adaptadores USB en 3 equipos.",
+                        "Software obsoleto y vulnerable instalado (Nero 8, WinRAR 5.0).",
+                        "Antivirus sin gestión centralizada (versiones gratuitas).",
+                        "Ausencia de respaldos automáticos para datos administrativos."
+                    ],
+                    siteRecommendations: [
+                        "Ampliar RAM del equipo más limitado a 8 GB.",
+                        "Migrar todos los equipos a conexión por cable Ethernet.",
+                        "Eliminar software vulnerable y mantener aplicaciones actualizadas.",
+                        "Implementar una solución de antivirus empresarial gestionada.",
+                        "Configurar respaldos automáticos a un disco externo o NAS."
+                    ]
+                },
+                {
+                    name: "Centro Médico - Los Andes",
+                    network: "192.168.200.0/24 y 190.54.18.200",
+                    summary: "Sede con equipos de misión crítica para imagenología. Presenta los riesgos más severos: un equipo con IP pública expuesta, un PC con Windows 7 y dependencia de software clínico obsoleto.",
+                    equipment: [
+                        {
+                            id: "DESKTOP-EMGIQQF",
+                            user: "PC Scanner",
+                            func: "Scanner imagenología",
+                            cpu: "Intel Core i5-4590",
+                            ram: 8,
+                            disk: "223 GB SSD + 1TB HDD",
+                            os: "Windows 10 Pro",
+                            antivirus: "Windows Defender",
+                            risks: ["Uso de software obsoleto (eFilm 3.1 + SQL Server 2005).", "Almacenamiento de imágenes sin respaldo externo."],
+                            recommendations: ["Migrar a PACS centralizado.", "Respaldar diariamente carpeta de imágenes DICOM."]
+                        },
+                        {
+                            id: "DESKTOP-J60I09R",
+                            user: "PC Respaldo Médico",
+                            func: "Estación de respaldo clínico",
+                            cpu: "Intel Core i5-9400F",
+                            ram: 16,
+                            disk: "238 GB SSD + 446 GB HDD",
+                            os: "Windows 10 Pro",
+                            antivirus: "Windows Defender",
+                            risks: ["CRÍTICO: Exposición directa a Internet por IP pública.", "Software sin soporte (SQL 2005, eFilm)."],
+                            recommendations: ["URGENTE: Migrar a IP privada y proteger con firewall/VPN.", "Implementar respaldo incremental diario a NAS."]
+                        },
+                        {
+                            id: "PC-PC",
+                            user: "PC Resonador",
+                            func: "Resonador imagenología",
+                            cpu: "AMD Athlon II X2 250",
+                            ram: 4,
+                            disk: "No determinado",
+                            os: "Windows 7 Ultimate",
+                            antivirus: "Ninguno activo",
+                            risks: ["CRÍTICO: SO Windows 7, sin soporte y con vulnerabilidades.", "Hardware obsoleto (CPU de más de 12 años).", "Sin antivirus activo."],
+                            recommendations: ["URGENTE: Reemplazar por equipo moderno con Windows 11.", "Aislar de la red si no es posible el reemplazo inmediato."]
+                        }
+                    ],
+                    siteRisks: [
+                        "Dependencia crítica de software clínico obsoleto (eFilm, SQL 2005).",
+                        "Equipo con Windows 7 sin soporte, representando una amenaza para toda la red.",
+                        "Exposición directa de un equipo a Internet a través de una IP pública.",
+                        "Ausencia total de respaldos automatizados para datos clínicos."
+                    ],
+                    siteRecommendations: [
+                        "Reemplazo urgente del equipo con Windows 7.",
+                        "Centralizar la gestión de imágenes en un servidor PACS.",
+                        "Implementar política de respaldo diario a NAS o medio externo cifrado.",
+                        "Eliminar acceso por IP pública y configurar VPN para acceso remoto seguro.",
+                        "Segmentar la red clínica de la administrativa mediante VLANs."
+                    ]
+                },
+                {
+                    name: "Centro Médico - San Felipe",
+                    network: "192.168.4.0/24 y 192.168.1.0/24",
+                    summary: "Infraestructura reducida pero con equipos modernos. Los principales riesgos son el uso de versiones de Windows no estables (Insider) y la falta de segmentación de red y respaldos.",
+                    equipment: [
+                        {
+                            id: "DESKTOP-PH5R45R",
+                            user: "PC Scanner",
+                            func: "Scanner imagenología",
+                            cpu: "Intel Core i7-10700",
+                            ram: 8,
+                            disk: "238 GB SSD + 466 GB HDD",
+                            os: "Windows 11 Pro Insider",
+                            antivirus: "Windows Defender",
+                            risks: ["Poco espacio en disco C: (<15% libre).", "SO Insider, potencialmente inestable para entorno clínico.", "Software obsoleto (eFilm, SQL 2005)."],
+                            recommendations: ["Reorganizar almacenamiento y liberar espacio.", "Reinstalar versión estable de Windows 11.", "Migrar a visor DICOM moderno."]
+                        },
+                        {
+                            id: "DESKTOP-04AIFMP",
+                            user: "PC Carol",
+                            func: "Administrativo jefatura",
+                            cpu: "Intel Core i7",
+                            ram: 8,
+                            disk: "475 GB SSD",
+                            os: "Windows 11 Pro Insider",
+                            antivirus: "Avast (inconsistente)",
+                            risks: ["SO Insider, no recomendado para producción.", "Anomalía de red: IP de otra sede.", "Antivirus inconsistente."],
+                            recommendations: ["Reinstalar versión estable de Windows 11.", "Corregir configuración de red.", "Estandarizar antivirus."]
+                        },
+                        {
+                            id: "DESKTOP-O628RNV",
+                            user: "PC Resonador",
+                            func: "Resonador imagenología",
+                            cpu: "Intel Core i5-11400F",
+                            ram: 16,
+                            disk: "931 GB SSD",
+                            os: "Windows 10 Pro",
+                            antivirus: "Windows Defender",
+                            risks: ["Continuidad operativa depende de software sin soporte (eFilm)."],
+                            recommendations: ["Evaluar migración a visor moderno + PACS.", "Implementar respaldo de base de datos y estudios."]
+                        }
+                    ],
+                    siteRisks: [
+                        "Red fragmentada sin segmentación lógica (VLANs).",
+                        "Uso de versiones de Windows Insider en dos equipos, uno de ellos clínico.",
+                        "Dependencia de software médico obsoleto (eFilm, SQL 2005).",
+                        "Ausencia de políticas de respaldo automático para estudios médicos."
+                    ],
+                    siteRecommendations: [
+                        "Reinstalar versiones estables de Windows 11 en los equipos afectados.",
+                        "Retirar eFilm y SQL 2005, migrando a un visor moderno.",
+                        "Implementar respaldos automáticos diarios a un NAS o disco externo.",
+                        "Revisar y unificar la configuración de red de la sede.",
+                        "Fortalecer y estandarizar la solución de antivirus."
+                    ]
+                }
+            ],
+            glossary: [
+                { term: "CPU", def: "Unidad Central de Procesamiento, el cerebro del computador." },
+                { term: "RAM", def: "Memoria de Acceso Aleatorio, usada para almacenamiento temporal de datos." },
+                { term: "SO", def: "Sistema Operativo, software base que gestiona el hardware (ej. Windows)." },
+                { term: "SSD", def: "Unidad de Estado Sólido, tipo de disco de almacenamiento rápido." },
+                { term: "HDD", def: "Disco Duro, tipo de disco de almacenamiento mecánico, más lento que SSD." },
+                { term: "Antivirus Empresarial", def: "Software de protección con administración y reportes centralizados." },
+                { term: "DICOM", def: "Estándar para almacenamiento y transmisión de imágenes médicas." },
+                { term: "eFilm Workstation", def: "Visor DICOM obsoleto, presenta riesgos por falta de soporte." },
+                { term: "Insider Preview", def: "Versión preliminar de Windows, puede ser inestable." },
+                { term: "NAS", def: "Dispositivo de almacenamiento conectado a red, para backups o archivos." },
+                { term: "PACS", def: "Sistema de archivado y comunicación de imágenes médicas." },
+                { term: "RDP", def: "Protocolo de Escritorio Remoto. Es un riesgo si se expone a internet sin seguridad." },
+                { term: "SQL Server 2005", def: "Motor de base de datos obsoleto, sin soporte desde 2016." },
+                { term: "VLAN", def: "Red de Área Local Virtual, permite segmentar lógicamente una red física." },
+                { term: "Windows 7", def: "Sistema operativo sin soporte de seguridad oficial desde 2020." },
+                { term: "Ransomware", def: "Tipo de malware que cifra archivos y exige un pago para su recuperación." }
+            ]
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.tab-button');
+            const contents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    contents.forEach(c => c.classList.remove('active'));
+
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.tab).classList.add('active');
+                });
+            });
+
+            // Populate Sede details
+            const sedesContainer = document.getElementById('sedes-container');
+            reportData.sedes.forEach((sede, index) => {
+                const sedeElement = document.createElement('div');
+                sedeElement.className = 'bg-white p-6 rounded-lg shadow-md';
+                sedeElement.innerHTML = `
+                    <div class="accordion-header flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-slate-800">${sede.name}</h3>
+                        <span class="text-2xl transform transition-transform duration-300">▼</span>
+                    </div>
+                    <div class="accordion-content mt-4 border-t pt-4">
+                        <p class="text-slate-600 mb-6">${sede.summary}</p>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <h4 class="font-semibold text-blue-800 mb-2">Riesgos Identificados</h4>
+                                <ul class="list-disc list-inside space-y-1 text-sm">
+                                    ${sede.siteRisks.map(risk => `<li>${risk}</li>`).join('')}
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-green-800 mb-2">Recomendaciones Técnicas</h4>
+                                <ul class="list-disc list-inside space-y-1 text-sm">
+                                    ${sede.siteRecommendations.map(rec => `<li>${rec}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                        <h4 class="font-semibold text-slate-800 mb-4">Equipos en esta Sede</h4>
+                        <div class="space-y-4">
+                            ${sede.equipment.map(eq => `
+                                <div class="border border-slate-200 rounded-lg p-4">
+                                    <p class="font-bold text-slate-900">${eq.user} (${eq.func}) - <span class="font-normal text-slate-600">${eq.id}</span></p>
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-2 text-sm">
+                                        <p><strong>SO:</strong> ${eq.os}</p>
+                                        <p><strong>CPU:</strong> ${eq.cpu}</p>
+                                        <p><strong>RAM:</strong> ${eq.ram} GB</p>
+                                        <p><strong>Disco:</strong> ${eq.disk}</p>
+                                        <p><strong>Antivirus:</strong> ${eq.antivirus}</p>
+                                    </div>
+                                    <div class="mt-3">
+                                        <p class="font-semibold text-sm">Observaciones Clave:</p>
+                                        <ul class="list-disc list-inside text-sm text-red-700">
+                                            ${eq.risks.map(r => `<li>${r}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                sedesContainer.appendChild(sedeElement);
+            });
+
+            // Populate Glossary
+            const glosarioContainer = document.getElementById('glosario-container');
+            reportData.glossary.forEach(item => {
+                const termElement = document.createElement('div');
+                termElement.innerHTML = `
+                    <p class="font-semibold text-slate-800">${item.term}</p>
+                    <p class="text-sm text-slate-600">${item.def}</p>
+                `;
+                glosarioContainer.appendChild(termElement);
+            });
+            
+            // Accordion logic
+            document.querySelectorAll('.accordion-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    const content = header.nextElementSibling;
+                    const icon = header.querySelector('span');
+                    
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        icon.style.transform = 'rotate(-180deg)';
+                    }
+                });
+            });
+
+            // OS Chart
+            const osCounts = reportData.sedes.flatMap(s => s.equipment).reduce((acc, eq) => {
+                let osKey = eq.os.includes("Insider") ? "Windows Insider" : (eq.os.includes("7") ? "Windows 7" : "Windows 10/11");
+                acc[osKey] = (acc[osKey] || 0) + 1;
+                return acc;
+            }, {});
+
+            new Chart(document.getElementById('osChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(osCounts),
+                    datasets: [{
+                        data: Object.values(osCounts),
+                        backgroundColor: ['#3b82f6', '#ef4444', '#f59e0b'],
+                        borderColor: '#f1f5f9',
+                        borderWidth: 3,
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // Connectivity Chart
+            const connCounts = reportData.sedes.flatMap(s => s.equipment).reduce((acc, eq) => {
+                let connKey = eq.risks.some(r => r.includes("Wi-Fi")) ? "Wi-Fi (USB)" : "Ethernet";
+                acc[connKey] = (acc[connKey] || 0) + 1;
+                return acc;
+            }, {});
+
+            new Chart(document.getElementById('connectivityChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(connCounts),
+                    datasets: [{
+                        label: 'Nº de Equipos',
+                        data: Object.values(connCounts),
+                        backgroundColor: ['#10b981', '#f59e0b'],
+                        borderRadius: 4,
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { stepSize: 1 } } } }
+            });
+        });
+    </script>
+
+</body>
+</html>
